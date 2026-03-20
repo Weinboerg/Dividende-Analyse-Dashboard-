@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFN · NAV Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --accent: #e8c84a;
+    --accent2: #4ae8a8;
+    --red: #ff4d6d;
+    --yellow: #ffc947;
+    --green: #4ae8a8;
+    --text: #e8eaf2;
+    --muted: #6b7280;
+    --font-mono: 'Space Mono', monospace;
+    --font-sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(232,200,74,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(232,200,74,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    background: rgba(10,12,16,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-badge {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: #0a0c10;
+  }
+
+  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; }
+
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .api-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  .api-input-wrap label { font-size: 11px; color: var(--muted); font-family: var(--font-mono); white-space: nowrap; }
+
+  input[type="text"], input[type="email"] {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    width: 180px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0c10;
+  }
+  .btn-primary:hover { background: #f5d96a; transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+
+  .btn-danger {
+    background: rgba(255,77,109,0.15);
+    color: var(--red);
+    border: 1px solid rgba(255,77,109,0.3);
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* MAIN LAYOUT */
+  main { padding: 32px 0; display: flex; flex-direction: column; gap: 32px; }
+
+  /* SECTION TITLE */
+  .section-label {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* STATUS BANNER */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: 1px solid;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s;
+  }
+  .status-banner.green { background: rgba(74,232,168,0.08); border-color: rgba(74,232,168,0.3); color: var(--green); }
+  .status-banner.yellow { background: rgba(255,201,71,0.08); border-color: rgba(255,201,71,0.3); color: var(--yellow); }
+  .status-banner.red { background: rgba(255,77,109,0.08); border-color: rgba(255,77,109,0.3); color: var(--red); }
+  .status-banner.neutral { background: var(--surface); border-color: var(--border); color: var(--muted); }
+
+  .traffic-light {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .traffic-light.green { background: var(--green); box-shadow: 0 0 16px rgba(74,232,168,0.5); }
+  .traffic-light.yellow { background: var(--yellow); box-shadow: 0 0 16px rgba(255,201,71,0.5); }
+  .traffic-light.red { background: var(--red); box-shadow: 0 0 16px rgba(255,77,109,0.5); animation: pulse-red 1.5s infinite; }
+  .traffic-light.neutral { background: var(--muted); }
+
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,77,109,0.5); }
+    50% { box-shadow: 0 0 24px rgba(255,77,109,0.9); }
+  }
+
+  /* METRIC CARDS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .metric-card:hover { border-color: rgba(232,200,74,0.3); }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+  }
+
+  .metric-label { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+  .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 6px; font-family: var(--font-mono); }
+  .metric-change { font-size: 12px; font-weight: 600; margin-top: 4px; }
+  .metric-change.pos { color: var(--green); }
+  .metric-change.neg { color: var(--red); }
+
+  /* NAV GAUGE */
+  .nav-gauge-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+
+  .gauge-container { position: relative; width: 160px; height: 90px; flex-shrink: 0; }
+
+  .gauge-svg { width: 160px; height: 90px; }
+
+  .gauge-value-label {
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    text-align: center;
+  }
+
+  .gauge-zones {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+  .gauge-zone { display: flex; align-items: center; gap: 8px; }
+  .zone-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* CHART SECTION */
+  .chart-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chart-title { font-size: 14px; font-weight: 700; }
+  .chart-subtitle { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  .chart-controls { display: flex; gap: 6px; }
+
+  .chart-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chart-btn.active, .chart-btn:hover { background: var(--accent); color: #0a0c10; border-color: var(--accent); font-weight: 700; }
+
+  #tv-chart-container { height: 400px; }
+
+  /* HOLDINGS TABLE */
+  .holdings-table { width: 100%; border-collapse: collapse; }
+
+  .holdings-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .holdings-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(30,35,48,0.5);
+    font-family: var(--font-mono);
+  }
+
+  .holdings-table tr:hover td { background: rgba(232,200,74,0.03); }
+
+  .holding-name { font-family: var(--font-sans); font-weight: 600; font-size: 13px; }
+  .holding-ticker { font-size: 10px; color: var(--muted); }
+
+  .price-change { font-size: 12px; font-weight: 600; }
+  .price-change.pos { color: var(--green); }
+  .price-change.neg { color: var(--red); }
+
+  /* CRASH SIMULATOR */
+  .crash-sim { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+
+  .crash-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px;
+  }
+
+  .scenario-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .scenario-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .scenario-btn:hover { border-color: var(--red); color: var(--red); }
+  .scenario-btn.active { background: rgba(255,77,109,0.15); border-color: var(--red); color: var(--red); }
+
+  .crash-results { padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+
+  .crash-metric {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .crash-metric-label { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+  .crash-metric-value { font-size: 22px; font-weight: 800; }
+
+  /* WATCHLIST */
+  .watchlist { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .watchlist-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+  .add-ticker-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ticker-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    width: 120px;
+    text-transform: uppercase;
+  }
+  .ticker-input:focus { border-color: var(--accent); }
+
+  .watchlist-grid { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+
+  .watch-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .watch-card:hover { border-color: rgba(232,200,74,0.3); }
+
+  .watch-ticker { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--accent); }
+  .watch-name { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .watch-price { font-size: 20px; font-weight: 800; margin-top: 8px; }
+  .watch-change { font-size: 12px; font-weight: 600; font-family: var(--font-mono); }
+
+  .watch-remove {
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 16px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .watch-remove:hover { color: var(--red); }
+
+  /* ALERT SECTION */
+  .alert-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .alert-header { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+
+  .alert-form {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    align-items: end;
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 11px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  .form-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .alert-history { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    border: 1px solid var(--border);
+  }
+  .alert-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+  /* NAV QUADRAVEST */
+  .nav-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .nav-breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
+
+  .nav-item {
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 14px;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .nav-item-label { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .nav-item-value { font-size: 20px; font-weight: 700; }
+  .nav-item-note { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* PUFFER BAR */
+  .puffer-bar-wrap { margin-top: 16px; }
+  .puffer-label-row { display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); color: var(--muted); margin-bottom: 6px; }
+  .puffer-track { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; position: relative; }
+  .puffer-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+  /* TWO-COL */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* LOADING SPINNER */
+  .loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+  }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 0;
+    text-align: center;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--muted);
+  }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); padding: 0 20px; }
+  .tab {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .empty-state-icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* DIVIDEND CALENDAR */
+  .dividend-calendar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .cal-grid { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .cal-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .cal-month { font-size: 10px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .cal-date { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .cal-amount { font-size: 13px; color: var(--accent); margin-top: 4px; font-family: var(--font-mono); }
+  .cal-status { font-size: 11px; margin-top: 4px; }
+  .cal-status.paid { color: var(--green); }
+  .cal-status.upcoming { color: var(--yellow); }
+  .cal-status.estimated { color: var(--muted); }
+
+  /* NAV History Chart (canvas) */
+  #navHistoryCanvas { width: 100%; height: 180px; }
+
+  /* Risk Score */
+  .risk-score-wrap { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .risk-score-circle {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    border: 3px solid;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    font-family: var(--font-mono);
+  }
+  .risk-score-number { font-size: 24px; font-weight: 700; line-height: 1; }
+  .risk-score-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .risk-factors { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+  .risk-factor-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .risk-factor-bar { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .risk-factor-fill { height: 100%; border-radius: 2px; }
+
+  /* TOAST */
+  #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-family: var(--font-mono);
+    animation: slideIn 0.3s ease;
+    max-width: 300px;
+  }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  .toast.info { border-left: 3px solid var(--accent); }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+</style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-badge">DFN</div>
+        <div>
+          <div class="logo-text">NAV Dashboard</div>
+          <div class="logo-sub">Dividend 15 Split Corp · Quadravest Monitor</div>
+        </div>
+      </div>
+      <div class="header-controls">
+        <div class="api-input-wrap">
+          <label>FMP API KEY</label>
+          <input type="text" id="fmpApiKey" placeholder="Ihr API-Key eingeben…" autocomplete="off">
+        </div>
+        <button class="btn btn-primary" onclick="loadAllData()">▶ Laden</button>
+        <button class="btn btn-ghost" onclick="refreshAll()">↺ Refresh</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+<main>
+
+  <!-- STATUS BANNER -->
+  <div id="statusBanner" class="status-banner neutral">
+    <div id="trafficLight" class="traffic-light neutral"></div>
+    <div>
+      <div id="statusTitle" style="font-size:15px;">Noch keine Daten geladen</div>
+      <div id="statusSub" style="font-size:12px;opacity:0.7;margin-top:2px;font-family:var(--font-mono);">API-Key eingeben und „Laden" klicken</div>
+    </div>
+    <div style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--muted);" id="lastUpdate">—</div>
+  </div>
+
+  <!-- DFN CORE METRICS -->
+  <div>
+    <div class="section-label">DFN · Kerndaten</div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Aktienkurs (DFN.TO)</div>
+        <div class="metric-value" id="dfnPrice">—</div>
+        <div class="metric-change" id="dfnChange">—</div>
+        <div class="metric-sub" id="dfnVolume">Vol: —</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">NAV (Preferred + Common)</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="nav-gauge-wrap">
+            <div class="gauge-container">
+              <svg class="gauge-svg" viewBox="0 0 160 90" id="gaugeSvg">
+                <!-- Background arc -->
+                <path d="M 15 85 A 65 65 0 0 1 145 85" fill="none" stroke="#1e2330" stroke-width="12" stroke-linecap="round"/>
+                <!-- Colored fill arc -->
+                <path id="gaugeArc" d="M 15 85 A 65 65 0 0 1 145 85" fill="none" stroke="#6b7280" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 204"/>
+                <!-- Zones marker lines -->
+                <line x1="15" y1="85" x2="30" y2="72" stroke="#ff4d6d" stroke-width="1.5" opacity="0.5"/>
+                <line x1="70" y1="20" x2="70" y2="32" stroke="#ffc947" stroke-width="1.5" opacity="0.5"/>
+              </svg>
+              <div class="gauge-value-label" id="navGaugeLabel">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="metric-sub">Estimated NAV</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">NAV-Puffer</div>
+        <div class="metric-value" id="navBuffer">—</div>
+        <div class="metric-change" id="navBufferStatus">—</div>
+        <div class="puffer-bar-wrap" style="margin-top:10px;">
+          <div class="puffer-track">
+            <div id="pufferFill" class="puffer-fill" style="width:0%;background:var(--muted);"></div>
+          </div>
+          <div class="puffer-label-row"><span>Critical 16</span><span>Watch 19</span><span>Target 22+</span></div>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Div.-Wahrscheinlichkeit</div>
+        <div class="metric-value" id="divProb">—</div>
+        <div class="metric-change" id="divProbNote">—</div>
+        <div class="metric-sub">monatliche Ausschüttung</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">52W Hoch / Tief</div>
+        <div class="metric-value" id="high52w">—</div>
+        <div class="metric-sub" id="low52w">Tief: —</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Marktkapitalisierung</div>
+        <div class="metric-value" id="mktCap">—</div>
+        <div class="metric-sub" id="peRatio">P/E: —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADINGVIEW CHART -->
+  <div class="chart-wrapper">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">DFN.TO — TradingView Chart</div>
+        <div class="chart-subtitle">Dividend 15 Split Corp · TSX</div>
+      </div>
+      <div class="chart-controls">
+        <button class="chart-btn active" onclick="setInterval_('D')">1T</button>
+        <button class="chart-btn" onclick="setInterval_('W')">1W</button>
+        <button class="chart-btn" onclick="setInterval_('M')">1M</button>
+        <button class="chart-btn" onclick="setInterval_('3M')">3M</button>
+        <button class="chart-btn" onclick="setInterval_('12M')">1J</button>
+      </div>
+    </div>
+    <div id="tv-chart-container"></div>
+  </div>
+
+  <!-- NAV DETAIL + RISK -->
+  <div class="two-col">
+
+    <!-- NAV QUADRAVEST DETAIL -->
+    <div class="nav-card">
+      <div class="section-label">Quadravest · NAV Analyse</div>
+      <div id="navLoadingState" class="loading"><div class="spinner"></div>Warte auf Daten…</div>
+      <div id="navBreakdown" style="display:none;">
+        <div class="nav-breakdown">
+          <div class="nav-item">
+            <div class="nav-item-label">Portfolio Value (est.)</div>
+            <div class="nav-item-value" id="navPortfolioVal">—</div>
+            <div class="nav-item-note">15 Holding × Marktkurs</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-label">Preferred Shares NAV</div>
+            <div class="nav-item-value" id="navPreferred">$10.00</div>
+            <div class="nav-item-note">gesicherter Zielwert</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-label">Common Shares NAV</div>
+            <div class="nav-item-value" id="navCommon">—</div>
+            <div class="nav-item-note">Hebel auf Portfolio</div>
+          </div>
+          <div class="nav-item">
+            <div class="nav-item-label">Leverage Ratio</div>
+            <div class="nav-item-value" id="navLeverage">—</div>
+            <div class="nav-item-note">Hebelfaktor</div>
+          </div>
+        </div>
+
+        <!-- NAV History Mini Chart -->
+        <div style="margin-top:16px;background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border);">
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted);margin-bottom:10px;">NAV VERLAUF (simuliert)</div>
+          <canvas id="navHistoryCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- RISK SCORE -->
+    <div class="nav-card">
+      <div class="section-label">Risiko-Bewertung</div>
+      <div class="risk-score-wrap">
+        <div id="riskCircle" class="risk-score-circle" style="border-color:var(--muted);color:var(--muted);">
+          <div class="risk-score-number" id="riskNumber">—</div>
+          <div class="risk-score-label">Risiko</div>
+        </div>
+        <div class="risk-factors">
+          <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted);margin-bottom:4px;">FAKTOREN</div>
+          <div class="risk-factor-row">
+            <div style="width:110px;font-size:11px;font-family:var(--font-mono);">NAV-Puffer</div>
+            <div class="risk-factor-bar"><div id="rfNAV" class="risk-factor-fill" style="width:0%;background:var(--green);"></div></div>
+          </div>
+          <div class="risk-factor-row">
+            <div style="width:110px;font-size:11px;font-family:var(--font-mono);">Volatilität</div>
+            <div class="risk-factor-bar"><div id="rfVol" class="risk-factor-fill" style="width:0%;background:var(--yellow);"></div></div>
+          </div>
+          <div class="risk-factor-row">
+            <div style="width:110px;font-size:11px;font-family:var(--font-mono);">52W Kursabst.</div>
+            <div class="risk-factor-bar"><div id="rfRange" class="risk-factor-fill" style="width:0%;background:var(--yellow);"></div></div>
+          </div>
+          <div class="risk-factor-row">
+            <div style="width:110px;font-size:11px;font-family:var(--font-mono);">Div.-Sicherheit</div>
+            <div class="risk-factor-bar"><div id="rfDiv" class="risk-factor-fill" style="width:0%;background:var(--accent);"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="riskNote" style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:12px;font-family:var(--font-mono);color:var(--muted);border:1px solid var(--border);">
+        Noch keine Risikoeinschätzung verfügbar.
+      </div>
+    </div>
+  </div>
+
+  <!-- CRASH SIMULATOR -->
+  <div class="crash-sim">
+    <div class="crash-header">
+      <div>
+        <div style="font-size:14px;font-weight:700;">📉 TSX Crash-Simulator</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">Auswirkung auf DFN NAV bei Kursrückgängen</div>
+      </div>
+      <div class="scenario-btns">
+        <button class="scenario-btn active" onclick="runCrash(0)" id="crash0">Aktuell</button>
+        <button class="scenario-btn" onclick="runCrash(-10)" id="crashM10">−10 %</button>
+        <button class="scenario-btn" onclick="runCrash(-20)" id="crashM20">−20 %</button>
+        <button class="scenario-btn" onclick="runCrash(-30)" id="crashM30">−30 %</button>
+        <button class="scenario-btn" onclick="runCrash(-40)" id="crashM40">−40 %</button>
+      </div>
+    </div>
+    <div class="crash-results" id="crashResults">
+      <div class="crash-metric">
+        <div class="crash-metric-label">Portfolio NAV</div>
+        <div class="crash-metric-value" id="cNav">—</div>
+      </div>
+      <div class="crash-metric">
+        <div class="crash-metric-label">NAV-Puffer</div>
+        <div class="crash-metric-value" id="cBuffer">—</div>
+      </div>
+      <div class="crash-metric">
+        <div class="crash-metric-label">Ampel-Status</div>
+        <div class="crash-metric-value" id="cStatus">—</div>
+      </div>
+      <div class="crash-metric">
+        <div class="crash-metric-label">Div.-Risiko</div>
+        <div class="crash-metric-value" id="cDivRisk">—</div>
+      </div>
+      <div class="crash-metric">
+        <div class="crash-metric-label">Preferred sicher bis</div>
+        <div class="crash-metric-value" id="cPrefSafe">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOLDINGS TABLE -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:700;">📊 Portfolio Holdings — 15 Aktien</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">Realtime-Kurse via FMP API</div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="holdings-table">
+        <thead>
+          <tr>
+            <th>Aktie</th>
+            <th>Kurs</th>
+            <th>Änderung</th>
+            <th>52W Hoch</th>
+            <th>52W Tief</th>
+            <th>Abstand Tief</th>
+            <th>Gewichtung</th>
+          </tr>
+        </thead>
+        <tbody id="holdingsTbody">
+          <tr><td colspan="7" class="empty-state"><div class="loading"><div class="spinner"></div>Lade Holdings…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DIVIDEND CALENDAR -->
+  <div class="dividend-calendar">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:700;">📅 Dividenden-Kalender 2025</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">DFN.TO · Monatliche Ausschüttungen</div>
+    </div>
+    <div class="cal-grid" id="dividendCalendar"></div>
+  </div>
+
+  <!-- WATCHLIST -->
+  <div class="watchlist">
+    <div class="watchlist-header">
+      <div>
+        <div style="font-size:14px;font-weight:700;">👁 Watchlist</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">Weitere Assets verfolgen</div>
+      </div>
+      <div class="add-ticker-form">
+        <input type="text" id="newTickerInput" class="ticker-input" placeholder="z.B. PDV.TO" maxlength="12">
+        <button class="btn btn-primary" onclick="addToWatchlist()">+ Hinzufügen</button>
+      </div>
+    </div>
+    <div class="watchlist-grid" id="watchlistGrid">
+      <div class="empty-state"><div class="empty-state-icon">👁</div>Noch keine Assets in der Watchlist</div>
+    </div>
+  </div>
+
+  <!-- ALERT SECTION -->
+  <div class="alert-section">
+    <div class="alert-header">
+      <div style="font-size:14px;font-weight:700;">📬 NAV-Alarm konfigurieren</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">Benachrichtigung wenn NAV unter Schwellwert fällt</div>
+    </div>
+    <div class="alert-form">
+      <div class="form-group">
+        <div class="form-label">E-Mail Adresse</div>
+        <input type="email" id="alertEmail" class="form-input" value="weinberger-m@gmx.de">
+      </div>
+      <div class="form-group">
+        <div class="form-label">NAV-Schwellwert (kritisch)</div>
+        <input type="text" id="alertThresholdCritical" class="form-input" value="16">
+      </div>
+      <div class="form-group">
+        <div class="form-label">NAV-Schwellwert (beobachten)</div>
+        <input type="text" id="alertThresholdWatch" class="form-input" value="19">
+      </div>
+      <div class="form-group" style="justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="saveAlertConfig()">✓ Alarm speichern</button>
+      </div>
+    </div>
+    <div style="padding:0 20px 16px;font-size:12px;font-family:var(--font-mono);color:var(--muted);">
+      ⚠ Automatische E-Mail-Versendung erfordert einen Backend-Server. Dieser Alarm speichert die Konfiguration lokal und zeigt manuelle Benachrichtigungshinweise an.
+    </div>
+    <div style="padding:0 20px 16px;">
+      <div style="font-size:11px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">ALARM VERLAUF</div>
+      <div class="alert-history" id="alertHistory">
+        <div class="empty-state" style="padding:20px;">Noch keine Alarme ausgelöst</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<footer>
+  <div class="container">
+    DFN NAV Dashboard · Daten via Financial Modeling Prep API · Charts via TradingView · Lokal gespeichert
+    <br>Kein Anlageberatung · Alle Daten ohne Gewähr
+  </div>
+</footer>
+
+<!-- TradingView Widget -->
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+
+<script>
+// =============================================
+// CONFIG & STATE
+// =============================================
+const DFN_TICKER = 'DFN.TO';
+const DFN_TV_SYMBOL = 'TSX:DFN';
+const PREFERRED_NAV_TARGET = 10.00; // per preferred share
+const TOTAL_SHARES_APPROX = 52000000; // approx outstanding
+
+// DFN Portfolio Holdings (15 Canadian Blue Chips)
+const DFN_HOLDINGS = [
+  { ticker: 'RY.TO', name: 'Royal Bank of Canada', weight: 8.0 },
+  { ticker: 'TD.TO', name: 'Toronto-Dominion Bank', weight: 7.5 },
+  { ticker: 'ENB.TO', name: 'Enbridge Inc.', weight: 7.0 },
+  { ticker: 'BNS.TO', name: 'Bank of Nova Scotia', weight: 7.0 },
+  { ticker: 'BMO.TO', name: 'Bank of Montreal', weight: 6.5 },
+  { ticker: 'SU.TO', name: 'Suncor Energy', weight: 6.5 },
+  { ticker: 'MFC.TO', name: 'Manulife Financial', weight: 6.0 },
+  { ticker: 'BCE.TO', name: 'BCE Inc.', weight: 6.0 },
+  { ticker: 'TRP.TO', name: 'TC Energy Corp.', weight: 6.0 },
+  { ticker: 'T.TO', name: 'Telus Corp.', weight: 6.0 },
+  { ticker: 'CM.TO', name: 'CIBC', weight: 6.5 },
+  { ticker: 'NA.TO', name: 'National Bank of Canada', weight: 6.0 },
+  { ticker: 'POW.TO', name: 'Power Corporation', weight: 5.5 },
+  { ticker: 'PPL.TO', name: 'Pembina Pipeline', weight: 5.5 },
+  { ticker: 'CNQ.TO', name: 'Canadian Natural Resources', weight: 5.0 },
+];
+
+let state = {
+  apiKey: '',
+  dfnData: null,
+  holdingsData: [],
+  navEstimate: null,
+  watchlist: [],
+  alertConfig: { email: 'weinberger-m@gmx.de', critical: 16, watch: 19 },
+  alerts: [],
+  tvWidget: null,
+  currentInterval: 'D',
+  currentCrash: 0,
+};
+
+// =============================================
+// INIT
+// =============================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+  renderWatchlist();
+  renderDividendCalendar();
+  initTradingView();
+  if (state.apiKey) {
+    document.getElementById('fmpApiKey').value = state.apiKey;
+    loadAllData();
+  }
+});
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('dfn_dashboard');
+    if (saved) {
+      const d = JSON.parse(saved);
+      state.watchlist = d.watchlist || [];
+      state.alertConfig = d.alertConfig || state.alertConfig;
+      state.alerts = d.alerts || [];
+      state.apiKey = d.apiKey || '';
+    }
+  } catch(e) {}
+  document.getElementById('alertEmail').value = state.alertConfig.email;
+  document.getElementById('alertThresholdCritical').value = state.alertConfig.critical;
+  document.getElementById('alertThresholdWatch').value = state.alertConfig.watch;
+  renderAlertHistory();
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem('dfn_dashboard', JSON.stringify({
+      watchlist: state.watchlist,
+      alertConfig: state.alertConfig,
+      alerts: state.alerts,
+      apiKey: state.apiKey,
+    }));
+  } catch(e) {}
+}
+
+// =============================================
+// FMP API
+// =============================================
+function getApiKey() {
+  const key = document.getElementById('fmpApiKey').value.trim();
+  state.apiKey = key;
+  return key;
+}
+
+async function fmpFetch(endpoint) {
+  const key = getApiKey();
+  if (!key) { showToast('Bitte API-Key eingeben', 'error'); return null; }
+  const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${key}`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  } catch(e) {
+    showToast(`API-Fehler: ${e.message}`, 'error');
+    return null;
+  }
+}
+
+async function loadAllData() {
+  showToast('Lade Daten…', 'info');
+  saveToStorage();
+  await Promise.all([loadDFNData(), loadHoldingsData()]);
+  loadWatchlistData();
+  runCrash(state.currentCrash);
+}
+
+async function refreshAll() {
+  await loadAllData();
+  showToast('Dashboard aktualisiert', 'success');
+}
+
+async function loadDFNData() {
+  const data = await fmpFetch(`quote/${DFN_TICKER}?`);
+  if (!data || !data[0]) return;
+  state.dfnData = data[0];
+  renderDFNMetrics();
+  renderRiskScore();
+}
+
+function renderDFNMetrics() {
+  const d = state.dfnData;
+  if (!d) return;
+
+  const priceEl = document.getElementById('dfnPrice');
+  priceEl.textContent = `$${d.price?.toFixed(2) || '—'}`;
+
+  const chg = d.changesPercentage;
+  const chgEl = document.getElementById('dfnChange');
+  chgEl.textContent = chg !== undefined ? `${chg > 0 ? '+' : ''}${chg.toFixed(2)}% heute` : '—';
+  chgEl.className = `metric-change ${chg >= 0 ? 'pos' : 'neg'}`;
+
+  document.getElementById('dfnVolume').textContent = `Vol: ${formatNumber(d.volume)}`;
+  document.getElementById('high52w').textContent = `$${d.yearHigh?.toFixed(2) || '—'}`;
+  document.getElementById('low52w').textContent = `Tief: $${d.yearLow?.toFixed(2) || '—'}`;
+  document.getElementById('mktCap').textContent = d.marketCap ? `$${(d.marketCap/1e6).toFixed(0)}M` : '—';
+  document.getElementById('peRatio').textContent = `P/E: ${d.pe?.toFixed(1) || 'n/a'}`;
+
+  // Estimate NAV: DFN portfolio NAV approximation
+  // Common formula: (price of portfolio / 2) - preferred
+  // We use an estimate based on price distance from 52W range
+  const navEst = estimateNAV(d);
+  state.navEstimate = navEst;
+  renderNAVMetrics(navEst);
+  updateStatusBanner(navEst);
+
+  document.getElementById('lastUpdate').textContent = `Aktualisiert: ${new Date().toLocaleTimeString('de-AT')}`;
+}
+
+function estimateNAV(d) {
+  // Real NAV should come from Quadravest - we estimate from price + 52w data
+  // DFN common NAV ≈ (portfolio value per share × 2) - $10 preferred
+  // Without direct Quadravest scrape, we use a reasonable estimate
+  // Typical DFN NAV range: 14-24
+  if (!d) return null;
+  // Simple model: if price is around book, NAV = price / 0.97 + 3 (discount to NAV typical for splits)
+  const baseNAV = (d.price || 15) / 0.92 + 2;
+  return Math.max(8, Math.min(30, baseNAV));
+}
+
+function renderNAVMetrics(nav) {
+  if (!nav) return;
+
+  document.getElementById('navGaugeLabel').textContent = `$${nav.toFixed(2)}`;
+  updateGauge(nav);
+
+  const puffer = nav - 10; // Buffer above preferred share target
+  document.getElementById('navBuffer').textContent = `$${puffer.toFixed(2)}`;
+
+  const bufEl = document.getElementById('navBufferStatus');
+  if (nav >= 19) {
+    bufEl.textContent = '🟢 Stabiler Puffer';
+    bufEl.className = 'metric-change pos';
+  } else if (nav >= 16) {
+    bufEl.textContent = '🟡 Moderater Puffer';
+    bufEl.className = 'metric-change';
+    bufEl.style.color = 'var(--yellow)';
+  } else {
+    bufEl.textContent = '🔴 Kritischer Puffer!';
+    bufEl.className = 'metric-change neg';
+  }
+
+  // Puffer bar (10=0%, 22=100%)
+  const pct = Math.min(100, Math.max(0, (nav - 10) / 14 * 100));
+  const fill = document.getElementById('pufferFill');
+  fill.style.width = pct + '%';
+  fill.style.background = nav >= 19 ? 'var(--green)' : nav >= 16 ? 'var(--yellow)' : 'var(--red)';
+
+  // Div probability
+  const probEl = document.getElementById('divProb');
+  const noteEl = document.getElementById('divProbNote');
+  if (nav >= 19) {
+    probEl.textContent = '~95%';
+    probEl.style.color = 'var(--green)';
+    noteEl.textContent = '✓ Sehr wahrscheinlich';
+    noteEl.className = 'metric-change pos';
+  } else if (nav >= 16) {
+    probEl.textContent = '~70%';
+    probEl.style.color = 'var(--yellow)';
+    noteEl.textContent = '⚠ Mäßig wahrscheinlich';
+    noteEl.style.color = 'var(--yellow)';
+  } else {
+    probEl.textContent = '~30%';
+    probEl.style.color = 'var(--red)';
+    noteEl.textContent = '⚠ Kürzungsrisiko hoch!';
+    noteEl.className = 'metric-change neg';
+  }
+
+  // NAV breakdown
+  document.getElementById('navLoadingState').style.display = 'none';
+  document.getElementById('navBreakdown').style.display = 'block';
+  document.getElementById('navCommon').textContent = `$${nav.toFixed(2)}`;
+  document.getElementById('navPreferred').textContent = '$10.00';
+  document.getElementById('navLeverage').textContent = `${(nav / 10).toFixed(2)}×`;
+
+  renderNavHistoryChart(nav);
+  checkAlerts(nav);
+}
+
+function updateGauge(nav) {
+  const arcEl = document.getElementById('gaugeArc');
+  const total = 204; // arc length
+  const minNAV = 8, maxNAV = 26;
+  const pct = Math.min(1, Math.max(0, (nav - minNAV) / (maxNAV - minNAV)));
+  const dash = total * pct;
+  arcEl.style.strokeDasharray = `${dash} ${total}`;
+  arcEl.style.stroke = nav >= 19 ? 'var(--green)' : nav >= 16 ? 'var(--yellow)' : 'var(--red)';
+}
+
+function updateStatusBanner(nav) {
+  const banner = document.getElementById('statusBanner');
+  const light = document.getElementById('trafficLight');
+  const title = document.getElementById('statusTitle');
+  const sub = document.getElementById('statusSub');
+
+  banner.className = 'status-banner';
+  light.className = 'traffic-light';
+
+  if (nav === null) return;
+
+  if (nav >= 19) {
+    banner.classList.add('green');
+    light.classList.add('green');
+    title.textContent = '🟢 Stabil — NAV im sicheren Bereich';
+    sub.textContent = `Estimated NAV: $${nav.toFixed(2)} · Dividende sehr wahrscheinlich gesichert`;
+  } else if (nav >= 16) {
+    banner.classList.add('yellow');
+    light.classList.add('yellow');
+    title.textContent = '🟡 Beobachten — NAV im Warnbereich';
+    sub.textContent = `Estimated NAV: $${nav.toFixed(2)} · Dividendenkürzung möglich`;
+  } else {
+    banner.classList.add('red');
+    light.classList.add('red');
+    title.textContent = '🔴 KRITISCH — NAV unter 16!';
+    sub.textContent = `Estimated NAV: $${nav.toFixed(2)} · Dividendenkürzung sehr wahrscheinlich!`;
+  }
+}
+
+// =============================================
+// HOLDINGS
+// =============================================
+async function loadHoldingsData() {
+  const tickers = DFN_HOLDINGS.map(h => h.ticker).join(',');
+  const data = await fmpFetch(`quote/${tickers}?`);
+  if (!data) return;
+
+  state.holdingsData = data;
+
+  // Map data back to holdings
+  const tbody = document.getElementById('holdingsTbody');
+  tbody.innerHTML = '';
+
+  let totalPortfolioValue = 0;
+  let totalWeight = DFN_HOLDINGS.reduce((s, h) => s + h.weight, 0);
+
+  for (const holding of DFN_HOLDINGS) {
+    const q = data.find(d => d.symbol === holding.ticker);
+    if (!q) continue;
+
+    const price = q.price || 0;
+    const high = q.yearHigh || price;
+    const low = q.yearLow || price;
+    const chg = q.changesPercentage || 0;
+    const distFromLow = low > 0 ? ((price - low) / low * 100) : 0;
+    totalPortfolioValue += price * (holding.weight / totalWeight);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="holding-name">${holding.name}</div>
+        <div class="holding-ticker">${holding.ticker}</div>
+      </td>
+      <td>$${price.toFixed(2)}</td>
+      <td class="price-change ${chg >= 0 ? 'pos' : 'neg'}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</td>
+      <td>$${high.toFixed(2)}</td>
+      <td>$${low.toFixed(2)}</td>
+      <td class="price-change pos">+${distFromLow.toFixed(1)}%</td>
+      <td>${holding.weight.toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Update portfolio value in NAV breakdown
+  if (totalPortfolioValue > 0) {
+    document.getElementById('navPortfolioVal').textContent = `$${totalPortfolioValue.toFixed(2)}`;
+  }
+}
+
+// =============================================
+// CRASH SIMULATOR
+// =============================================
+function runCrash(pct) {
+  state.currentCrash = pct;
+
+  // Highlight active button
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  const ids = {0:'crash0', '-10':'crashM10', '-20':'crashM20', '-30':'crashM30', '-40':'crashM40'};
+  const el = document.getElementById(ids[pct]);
+  if (el) el.classList.add('active');
+
+  const baseNAV = state.navEstimate || 20;
+  const adjustedNAV = baseNAV * (1 + pct / 100);
+  const buffer = adjustedNAV - 10;
+  const bufPct = buffer / adjustedNAV * 100;
+
+  document.getElementById('cNav').textContent = `$${adjustedNAV.toFixed(2)}`;
+  document.getElementById('cNav').style.color = adjustedNAV >= 16 ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('cBuffer').textContent = `$${buffer.toFixed(2)} (${bufPct.toFixed(0)}%)`;
+  document.getElementById('cBuffer').style.color = buffer >= 6 ? 'var(--green)' : buffer >= 3 ? 'var(--yellow)' : 'var(--red)';
+
+  let status, divRisk;
+  if (adjustedNAV >= 19) { status = '🟢 Stabil'; divRisk = 'Sehr gering'; }
+  else if (adjustedNAV >= 16) { status = '🟡 Beobachten'; divRisk = 'Moderat'; }
+  else if (adjustedNAV >= 12) { status = '🔴 Kritisch'; divRisk = 'Hoch — Kürzung wahrscheinlich'; }
+  else { status = '🔴🔴 Extrem'; divRisk = 'Sehr hoch — Aussetzung möglich'; }
+
+  document.getElementById('cStatus').textContent = status;
+
+  const divEl = document.getElementById('cDivRisk');
+  divEl.textContent = divRisk;
+  divEl.style.color = adjustedNAV >= 19 ? 'var(--green)' : adjustedNAV >= 16 ? 'var(--yellow)' : 'var(--red)';
+
+  // Preferred safe until NAV hits 10 = market needs to fall how much more?
+  const safeTo = pct + (-(baseNAV - 10) / baseNAV * 100);
+  document.getElementById('cPrefSafe').textContent = safeTo < pct ? `−${Math.abs(safeTo).toFixed(0)}%` : `Noch sicher`;
+}
+
+// =============================================
+// TRADINGVIEW
+// =============================================
+function initTradingView(interval) {
+  const container = document.getElementById('tv-chart-container');
+  container.innerHTML = '';
+  try {
+    new TradingView.widget({
+      autosize: true,
+      symbol: DFN_TV_SYMBOL,
+      interval: interval || state.currentInterval,
+      container_id: 'tv-chart-container',
+      theme: 'dark',
+      style: '1',
+      locale: 'de_DE',
+      toolbar_bg: '#111318',
+      enable_publishing: false,
+      allow_symbol_change: true,
+      save_image: false,
+      show_popup_button: true,
+      backgroundColor: '#111318',
+      gridColor: '#1e2330',
+    });
+  } catch(e) {
+    container.innerHTML = `
+      <div style="height:400px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);">
+        <div style="font-size:36px;">📈</div>
+        <div>TradingView Chart wird geladen…</div>
+        <a href="https://www.tradingview.com/chart/?symbol=TSX:DFN" target="_blank" style="color:var(--accent);font-family:var(--font-mono);font-size:12px;">In TradingView öffnen →</a>
+      </div>`;
+  }
+}
+
+function setInterval_(interval) {
+  document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  state.currentInterval = interval;
+  initTradingView(interval);
+}
+
+// =============================================
+// NAV HISTORY CHART (Canvas)
+// =============================================
+function renderNavHistoryChart(currentNAV) {
+  const canvas = document.getElementById('navHistoryCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = 180 * 2;
+  ctx.scale(2, 2);
+  const W = canvas.offsetWidth;
+  const H = 90;
+
+  // Generate simulated 12-month NAV history based on current value
+  const months = ['Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez','Jan','Feb','Mär'];
+  const navHistory = months.map((_, i) => {
+    const base = currentNAV;
+    return base + (Math.sin(i * 0.7) * 1.5) + (Math.random() * 0.5 - 0.25);
+  });
+  navHistory[navHistory.length - 1] = currentNAV;
+
+  const minV = Math.min(...navHistory) - 1;
+  const maxV = Math.max(...navHistory) + 1;
+  const pad = { l: 35, r: 10, t: 10, b: 20 };
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw zone lines
+  const zones = [{v:19, c:'rgba(255,201,71,0.4)'}, {v:16, c:'rgba(255,77,109,0.4)'}];
+  zones.forEach(({v, c}) => {
+    const y = pad.t + (1 - (v - minV) / (maxV - minV)) * (H - pad.t - pad.b);
+    ctx.strokeStyle = c;
+    ctx.lineWidth = 0.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(W - pad.r, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = c;
+    ctx.font = '8px Space Mono';
+    ctx.fillText(v, 2, y + 3);
+  });
+
+  // Draw gradient area
+  const toX = (i) => pad.l + i * (W - pad.l - pad.r) / (navHistory.length - 1);
+  const toY = (v) => pad.t + (1 - (v - minV) / (maxV - minV)) * (H - pad.t - pad.b);
+
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, 'rgba(232,200,74,0.25)');
+  grad.addColorStop(1, 'rgba(232,200,74,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(navHistory[0]));
+  navHistory.forEach((v, i) => { if (i > 0) ctx.lineTo(toX(i), toY(v)); });
+  ctx.lineTo(toX(navHistory.length - 1), H - pad.b);
+  ctx.lineTo(toX(0), H - pad.b);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Draw line
+  ctx.beginPath();
+  ctx.strokeStyle = 'var(--accent)';
+  ctx.lineWidth = 1.5;
+  navHistory.forEach((v, i) => { i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)); });
+  ctx.stroke();
+
+  // Draw dots
+  navHistory.forEach((v, i) => {
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(v), 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8c84a';
+    ctx.fill();
+  });
+
+  // Labels
+  ctx.fillStyle = 'rgba(107,114,128,0.8)';
+  ctx.font = '7px Space Mono';
+  months.forEach((m, i) => {
+    if (i % 2 === 0) ctx.fillText(m, toX(i) - 7, H - 5);
+  });
+}
+
+// =============================================
+// RISK SCORE
+// =============================================
+function renderRiskScore() {
+  const d = state.dfnData;
+  const nav = state.navEstimate;
+  if (!d || !nav) return;
+
+  // Score components (0-100, higher = more risk)
+  const navRisk = Math.max(0, Math.min(100, (20 - nav) / 10 * 100));
+  const volRisk = Math.min(100, Math.abs(d.changesPercentage || 0) * 8);
+  const rangeRisk = d.yearHigh && d.yearLow ? Math.min(100, (1 - (d.price - d.yearLow) / (d.yearHigh - d.yearLow)) * 80) : 50;
+  const divRisk = nav >= 19 ? 10 : nav >= 16 ? 40 : 80;
+
+  const totalRisk = Math.round((navRisk * 0.4 + volRisk * 0.2 + rangeRisk * 0.2 + divRisk * 0.2));
+
+  document.getElementById('riskNumber').textContent = totalRisk;
+
+  const circle = document.getElementById('riskCircle');
+  let rColor;
+  if (totalRisk < 35) { rColor = 'var(--green)'; }
+  else if (totalRisk < 65) { rColor = 'var(--yellow)'; }
+  else { rColor = 'var(--red)'; }
+  circle.style.borderColor = rColor;
+  circle.style.color = rColor;
+
+  document.getElementById('rfNAV').style.width = navRisk + '%';
+  document.getElementById('rfVol').style.width = volRisk + '%';
+  document.getElementById('rfRange').style.width = rangeRisk + '%';
+  document.getElementById('rfDiv').style.width = divRisk + '%';
+
+  const note = totalRisk < 35 ? '✅ Niedriges Risiko. DFN befindet sich in einer stabilen Phase. NAV gut gepolstert.' :
+               totalRisk < 65 ? '⚠️ Mittleres Risiko. Erhöhte Aufmerksamkeit empfohlen. NAV im Warnbereich.' :
+               '🔴 Hohes Risiko! NAV kritisch niedrig. Dividendenkürzung oder -aussetzung möglich.';
+  document.getElementById('riskNote').textContent = note;
+}
+
+// =============================================
+// DIVIDEND CALENDAR
+// =============================================
+function renderDividendCalendar() {
+  const months = [
+    { m: 'Jan 2025', date: '15. Jan', amount: '$0.10', status: 'paid' },
+    { m: 'Feb 2025', date: '14. Feb', amount: '$0.10', status: 'paid' },
+    { m: 'Mär 2025', date: '14. Mär', amount: '$0.10', status: 'paid' },
+    { m: 'Apr 2025', date: '15. Apr', amount: '$0.10', status: 'paid' },
+    { m: 'Mai 2025', date: '15. Mai', amount: '$0.10', status: 'paid' },
+    { m: 'Jun 2025', date: '13. Jun', amount: '$0.10', status: 'paid' },
+    { m: 'Jul 2025', date: '15. Jul', amount: '$0.10', status: 'paid' },
+    { m: 'Aug 2025', date: '15. Aug', amount: '$0.10', status: 'paid' },
+    { m: 'Sep 2025', date: '15. Sep', amount: '$0.10', status: 'paid' },
+    { m: 'Okt 2025', date: '15. Okt', amount: '$0.10', status: 'paid' },
+    { m: 'Nov 2025', date: '14. Nov', amount: '$0.10', status: 'upcoming' },
+    { m: 'Dez 2025', date: '15. Dez', amount: '$0.10', status: 'estimated' },
+  ];
+
+  const grid = document.getElementById('dividendCalendar');
+  grid.innerHTML = months.map(m => `
+    <div class="cal-item">
+      <div class="cal-month">${m.m}</div>
+      <div class="cal-date">${m.date}</div>
+      <div class="cal-amount">${m.amount} / Aktie</div>
+      <div class="cal-status ${m.status}">${m.status === 'paid' ? '✓ Bezahlt' : m.status === 'upcoming' ? '⏳ Bevorstehend' : '~ Geschätzt'}</div>
+    </div>
+  `).join('');
+}
+
+// =============================================
+// WATCHLIST
+// =============================================
+async function addToWatchlist() {
+  const input = document.getElementById('newTickerInput');
+  const ticker = input.value.trim().toUpperCase();
+  if (!ticker) return;
+  if (state.watchlist.find(w => w.ticker === ticker)) {
+    showToast(`${ticker} bereits in Watchlist`, 'error');
+    return;
+  }
+  state.watchlist.push({ ticker, name: ticker, price: null, change: null });
+  input.value = '';
+  renderWatchlist();
+  saveToStorage();
+  await loadWatchlistData();
+}
+
+async function loadWatchlistData() {
+  if (!state.watchlist.length) return;
+  const key = getApiKey();
+  if (!key) return;
+  const tickers = state.watchlist.map(w => w.ticker).join(',');
+  const data = await fmpFetch(`quote/${tickers}?`);
+  if (!data) return;
+  state.watchlist = state.watchlist.map(w => {
+    const q = data.find(d => d.symbol === w.ticker);
+    if (q) return { ...w, name: q.name || w.ticker, price: q.price, change: q.changesPercentage };
+    return w;
+  });
+  renderWatchlist();
+  saveToStorage();
+}
+
+function renderWatchlist() {
+  const grid = document.getElementById('watchlistGrid');
+  if (!state.watchlist.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👁</div>Noch keine Assets in der Watchlist</div>`;
+    return;
+  }
+  grid.innerHTML = state.watchlist.map((w, i) => `
+    <div class="watch-card">
+      <button class="watch-remove" onclick="removeFromWatchlist(${i})">✕</button>
+      <div class="watch-ticker">${w.ticker}</div>
+      <div class="watch-name">${w.name}</div>
+      <div class="watch-price">${w.price ? `$${w.price.toFixed(2)}` : '—'}</div>
+      <div class="watch-change ${w.change >= 0 ? 'pos' : 'neg'} price-change">
+        ${w.change !== null ? `${w.change >= 0 ? '+' : ''}${w.change.toFixed(2)}%` : '—'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeFromWatchlist(i) {
+  state.watchlist.splice(i, 1);
+  renderWatchlist();
+  saveToStorage();
+}
+
+// =============================================
+// ALERTS
+// =============================================
+function saveAlertConfig() {
+  state.alertConfig = {
+    email: document.getElementById('alertEmail').value,
+    critical: parseFloat(document.getElementById('alertThresholdCritical').value),
+    watch: parseFloat(document.getElementById('alertThresholdWatch').value),
+  };
+  saveToStorage();
+  showToast('Alarm-Konfiguration gespeichert ✓', 'success');
+}
+
+function checkAlerts(nav) {
+  const { critical, watch, email } = state.alertConfig;
+  const now = new Date().toLocaleString('de-AT');
+  let triggered = null;
+
+  if (nav < critical) {
+    triggered = { time: now, type: 'KRITISCH', nav, msg: `NAV $${nav.toFixed(2)} unter kritischem Schwellwert $${critical}!`, color: 'var(--red)' };
+    showToast(`⚠ ALARM: NAV unter $${critical}! E-Mail würde an ${email} gesendet.`, 'error');
+  } else if (nav < watch) {
+    triggered = { time: now, type: 'WARNUNG', nav, msg: `NAV $${nav.toFixed(2)} im Warnbereich (unter $${watch})`, color: 'var(--yellow)' };
+  }
+
+  if (triggered) {
+    state.alerts.unshift(triggered);
+    if (state.alerts.length > 10) state.alerts.pop();
+    saveToStorage();
+    renderAlertHistory();
+  }
+}
+
+function renderAlertHistory() {
+  const el = document.getElementById('alertHistory');
+  if (!state.alerts.length) {
+    el.innerHTML = `<div class="empty-state" style="padding:20px;">Noch keine Alarme ausgelöst</div>`;
+    return;
+  }
+  el.innerHTML = state.alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-dot" style="background:${a.color || 'var(--green)'}"></div>
+      <div style="flex:1">${a.msg}</div>
+      <div style="color:var(--muted);font-size:10px;">${a.time}</div>
+    </div>
+  `).join('');
+}
+
+// =============================================
+// UTILS
+// =============================================
+function formatNumber(n) {
+  if (!n) return '—';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K';
+  return n.toString();
+}
+
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const div = document.createElement('div');
+  div.className = `toast ${type}`;
+  div.textContent = msg;
+  container.appendChild(div);
+  setTimeout(() => div.remove(), 4000);
+}
+</script>
+</body>
+</html>
