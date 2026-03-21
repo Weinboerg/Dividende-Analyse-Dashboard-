@@ -850,13 +850,7 @@
   </div>
 
   <!-- DIVIDEND CALENDAR -->
-  <div class="dividend-calendar">
-    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
-      <div style="font-size:14px;font-weight:700;">📅 Dividenden-Kalender 2025–2026</div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">DFN.TO · Monatliche Ausschüttungen</div>
-    </div>
-    <div class="cal-grid" id="dividendCalendar"></div>
-  </div>
+  <div id="dividendCalendar" class="dividend-calendar"></div>
 
   <!-- WATCHLIST -->
   <div class="watchlist">
@@ -1046,6 +1040,8 @@ function fmtEur(val) {
 function fmtCad(val) {
   return `$${val.toFixed(2)} CAD`;
 }
+
+async function fmpFetch(endpoint) {
   const key = getApiKey();
   if (!key) { showToast('Bitte API-Key eingeben', 'error'); return null; }
   const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${key}`;
@@ -1536,6 +1532,11 @@ function renderDividendCalendar() {
 
   const calDiv = document.getElementById('dividendCalendar');
   calDiv.innerHTML = `
+    <!-- KALENDER HEADER -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:14px;font-weight:700;">📅 Dividenden-Kalender</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">DFN.TO · ab November 2025 · Monatliche Ausschüttungen</div>
+    </div>
 
     <!-- STEUER-INFO LEISTE -->
     <div style="padding:12px 20px;border-bottom:1px solid var(--border);background:rgba(232,200,74,0.04);display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
