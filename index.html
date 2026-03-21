@@ -852,7 +852,7 @@
   <!-- DIVIDEND CALENDAR -->
   <div class="dividend-calendar">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);">
-      <div style="font-size:14px;font-weight:700;">📅 Dividenden-Kalender 2025</div>
+      <div style="font-size:14px;font-weight:700;">📅 Dividenden-Kalender 2025–2026</div>
       <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">DFN.TO · Monatliche Ausschüttungen</div>
     </div>
     <div class="cal-grid" id="dividendCalendar"></div>
@@ -919,8 +919,7 @@
   </div>
 </footer>
 
-<!-- TradingView Widget -->
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<!-- TradingView wird per iframe eingebunden -->
 
 <script>
 // =============================================
@@ -961,6 +960,8 @@ let state = {
   tvWidget: null,
   currentInterval: 'D',
   currentCrash: 0,
+  cadEurRate: null,
+  shares: 50,
 };
 
 // =============================================
@@ -986,6 +987,7 @@ function loadFromStorage() {
       state.alertConfig = d.alertConfig || state.alertConfig;
       state.alerts = d.alerts || [];
       state.apiKey = d.apiKey || '';
+      state.shares = d.shares || 50;
     }
   } catch(e) {}
   document.getElementById('alertEmail').value = state.alertConfig.email;
@@ -1001,6 +1003,7 @@ function saveToStorage() {
       alertConfig: state.alertConfig,
       alerts: state.alerts,
       apiKey: state.apiKey,
+      shares: state.shares,
     }));
   } catch(e) {}
 }
@@ -1014,7 +1017,35 @@ function getApiKey() {
   return key;
 }
 
-async function fmpFetch(endpoint) {
+async function loadEurRate() {
+  const data = await fmpFetch(`fx/CADEUR?`);
+  if (data && data[0] && data[0].bid) {
+    state.cadEurRate = data[0].bid;
+  } else {
+    // Fallback: try forex endpoint
+    const data2 = await fmpFetch(`quote/CADEUR=X?`);
+    if (data2 && data2[0] && data2[0].price) {
+      state.cadEurRate = data2[0].price;
+    } else {
+      state.cadEurRate = 0.685; // Fallback-Kurs falls API nicht verfügbar
+      showToast('CAD/EUR Kurs: Fallback 0.685 (API nicht verfügbar)', 'info');
+    }
+  }
+  renderDividendCalendar();
+}
+
+function cadToEur(cad) {
+  const rate = state.cadEurRate || 0.685;
+  return cad * rate;
+}
+
+function fmtEur(val) {
+  return val.toLocaleString('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 });
+}
+
+function fmtCad(val) {
+  return `$${val.toFixed(2)} CAD`;
+}
   const key = getApiKey();
   if (!key) { showToast('Bitte API-Key eingeben', 'error'); return null; }
   const url = `https://financialmodelingprep.com/api/v3/${endpoint}&apikey=${key}`;
@@ -1031,7 +1062,7 @@ async function fmpFetch(endpoint) {
 async function loadAllData() {
   showToast('Lade Daten…', 'info');
   saveToStorage();
-  await Promise.all([loadDFNData(), loadHoldingsData()]);
+  await Promise.all([loadDFNData(), loadHoldingsData(), loadEurRate()]);
   loadWatchlistData();
   runCrash(state.currentCrash);
 }
@@ -1282,32 +1313,18 @@ function runCrash(pct) {
 // =============================================
 function initTradingView(interval) {
   const container = document.getElementById('tv-chart-container');
-  container.innerHTML = '';
-  try {
-    new TradingView.widget({
-      autosize: true,
-      symbol: DFN_TV_SYMBOL,
-      interval: interval || state.currentInterval,
-      container_id: 'tv-chart-container',
-      theme: 'dark',
-      style: '1',
-      locale: 'de_DE',
-      toolbar_bg: '#111318',
-      enable_publishing: false,
-      allow_symbol_change: true,
-      save_image: false,
-      show_popup_button: true,
-      backgroundColor: '#111318',
-      gridColor: '#1e2330',
-    });
-  } catch(e) {
-    container.innerHTML = `
-      <div style="height:400px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--muted);">
-        <div style="font-size:36px;">📈</div>
-        <div>TradingView Chart wird geladen…</div>
-        <a href="https://www.tradingview.com/chart/?symbol=TSX:DFN" target="_blank" style="color:var(--accent);font-family:var(--font-mono);font-size:12px;">In TradingView öffnen →</a>
-      </div>`;
-  }
+  const iv = interval || state.currentInterval;
+  const sym = encodeURIComponent(DFN_TV_SYMBOL);
+  // iframe embed — keine externe Script-Abhängigkeit, kein Script-Fehler
+  container.innerHTML = `
+    <iframe
+      src="https://www.tradingview.com/widgetembed/?frameElementId=tvframe&symbol=${sym}&interval=${iv}&hidesidetoolbar=0&hidetoptoolbar=0&symboledit=1&saveimage=0&toolbarbg=111318&theme=dark&style=1&timezone=Europe%2FVienna&locale=de_DE"
+      style="width:100%;height:400px;border:none;display:block;"
+      allowtransparency="true"
+      scrolling="no"
+      allowfullscreen>
+    </iframe>
+  `;
 }
 
 function setInterval_(interval) {
@@ -1441,31 +1458,201 @@ function renderRiskScore() {
 // =============================================
 // DIVIDEND CALENDAR
 // =============================================
+function calcTax(brutto) {
+  // Steuerberechnung Bayern, katholisch
+  // 1) Kanadische Quellensteuer 15% (DBA) wird in DE angerechnet
+  // 2) Deutsche Abgeltungssteuer 25%, Kirchensteuer 8% auf AbgSt, Soli 5,5% auf AbgSt
+  // Mit Kirchensteuer reduziert sich die effektive AbgSt leicht:
+  // Effektive AbgSt = 25% / (1 + 0.08 * 0.25 / 0.25) ≈ 24.51%
+  // Einfache Näherung (steuerlich korrekte Formel):
+  const quellensteuer = brutto * 0.15;
+  // Effektive Abgeltungssteuer mit Kirchensteuer-Kürzung
+  const abgst = brutto * 0.25 / (1 + 0.08 * (5.5 / 100 + 1)); // vereinfacht
+  const abgst_eff = brutto * 0.2412; // ~24.12% effektiv mit KiSt-Kürzung
+  const kirchensteuer = abgst_eff * 0.08;
+  const soli = abgst_eff * 0.055;
+  const gesamtDE = abgst_eff + kirchensteuer + soli;
+  // Anrechnung Quellensteuer: DE-Steuer minus bereits gezahlte Quellensteuer
+  const nachzahlungDE = Math.max(0, gesamtDE - quellensteuer);
+  const gesamtSteuer = quellensteuer + nachzahlungDE;
+  const netto = brutto - gesamtSteuer;
+  return {
+    brutto: brutto,
+    quellensteuer: quellensteuer,
+    abgst: abgst_eff,
+    kirchensteuer: kirchensteuer,
+    soli: soli,
+    gesamtDE: gesamtDE,
+    nachzahlungDE: nachzahlungDE,
+    gesamtSteuer: gesamtSteuer,
+    netto: netto,
+    effRate: (gesamtSteuer / brutto * 100),
+  };
+}
+
+function onSharesChange() {
+  const val = parseInt(document.getElementById('calShares').value) || 50;
+  state.shares = val;
+  saveToStorage();
+  renderDividendCalendar();
+}
+
 function renderDividendCalendar() {
-  const months = [
-    { m: 'Jan 2025', date: '15. Jan', amount: '$0.10', status: 'paid' },
-    { m: 'Feb 2025', date: '14. Feb', amount: '$0.10', status: 'paid' },
-    { m: 'Mär 2025', date: '14. Mär', amount: '$0.10', status: 'paid' },
-    { m: 'Apr 2025', date: '15. Apr', amount: '$0.10', status: 'paid' },
-    { m: 'Mai 2025', date: '15. Mai', amount: '$0.10', status: 'paid' },
-    { m: 'Jun 2025', date: '13. Jun', amount: '$0.10', status: 'paid' },
-    { m: 'Jul 2025', date: '15. Jul', amount: '$0.10', status: 'paid' },
-    { m: 'Aug 2025', date: '15. Aug', amount: '$0.10', status: 'paid' },
-    { m: 'Sep 2025', date: '15. Sep', amount: '$0.10', status: 'paid' },
-    { m: 'Okt 2025', date: '15. Okt', amount: '$0.10', status: 'paid' },
-    { m: 'Nov 2025', date: '14. Nov', amount: '$0.10', status: 'upcoming' },
-    { m: 'Dez 2025', date: '15. Dez', amount: '$0.10', status: 'estimated' },
+  const SHARES = state.shares || 50;
+  const DIV = 0.10; // CAD per share per month
+  const rate = state.cadEurRate || 0.685;
+  const rateLabel = state.cadEurRate
+    ? `Kurs: 1 CAD = ${rate.toFixed(4)} € (tagesaktuell)`
+    : `Kurs: 1 CAD = ${rate.toFixed(3)} € (Fallback)`;
+
+  const allMonths = [
+    { m: 'Nov 2025', date: '14. Nov 2025', status: 'paid' },
+    { m: 'Dez 2025', date: '15. Dez 2025', status: 'paid' },
+    { m: 'Jan 2026', date: '15. Jan 2026', status: 'paid' },
+    { m: 'Feb 2026', date: '13. Feb 2026', status: 'paid' },
+    { m: 'Mär 2026', date: '13. Mär 2026', status: 'paid' },
+    { m: 'Apr 2026', date: '15. Apr 2026', status: 'upcoming' },
+    { m: 'Mai 2026', date: '15. Mai 2026', status: 'estimated' },
+    { m: 'Jun 2026', date: '15. Jun 2026', status: 'estimated' },
+    { m: 'Jul 2026', date: '15. Jul 2026', status: 'estimated' },
+    { m: 'Aug 2026', date: '14. Aug 2026', status: 'estimated' },
+    { m: 'Sep 2026', date: '15. Sep 2026', status: 'estimated' },
+    { m: 'Okt 2026', date: '15. Okt 2026', status: 'estimated' },
+    { m: 'Nov 2026', date: '13. Nov 2026', status: 'estimated' },
+    { m: 'Dez 2026', date: '15. Dez 2026', status: 'estimated' },
   ];
 
-  const grid = document.getElementById('dividendCalendar');
-  grid.innerHTML = months.map(m => `
-    <div class="cal-item">
-      <div class="cal-month">${m.m}</div>
-      <div class="cal-date">${m.date}</div>
-      <div class="cal-amount">${m.amount} / Aktie</div>
-      <div class="cal-status ${m.status}">${m.status === 'paid' ? '✓ Bezahlt' : m.status === 'upcoming' ? '⏳ Bevorstehend' : '~ Geschätzt'}</div>
+  const paidMonths = allMonths.filter(m => m.status === 'paid');
+  const bruttoCAD = DIV * SHARES;
+  const bruttoEUR = cadToEur(bruttoCAD);
+  const tax = calcTax(bruttoCAD);
+  const taxEUR = calcTax(bruttoEUR);
+  const totalBruttoCAD = paidMonths.length * bruttoCAD;
+  const totalNettoCAD = paidMonths.length * tax.netto;
+  const totalSteuerCAD = paidMonths.length * tax.gesamtSteuer;
+  const totalBruttoEUR = cadToEur(totalBruttoCAD);
+  const totalNettoEUR = cadToEur(totalNettoCAD);
+  const totalSteuerEUR = cadToEur(totalSteuerCAD);
+
+  const calDiv = document.getElementById('dividendCalendar');
+  calDiv.innerHTML = `
+
+    <!-- STEUER-INFO LEISTE -->
+    <div style="padding:12px 20px;border-bottom:1px solid var(--border);background:rgba(232,200,74,0.04);display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+      <div style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">⚙ Bayern · Kath. · DBA Kanada</div>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">Quellenst.: <strong style="color:var(--text);">15%</strong></span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">AbgSt eff.: <strong style="color:var(--text);">~24,12%</strong></span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">KiSt: <strong style="color:var(--text);">8%</strong></span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">Soli: <strong style="color:var(--text);">5,5%</strong></span>
+      <span style="font-size:11px;font-family:var(--font-mono);color:var(--muted);">Gesamt: <strong style="color:var(--red);">~${tax.effRate.toFixed(1)}%</strong></span>
+      <div style="margin-left:auto;font-size:11px;font-family:var(--font-mono);color:var(--accent);">💱 ${rateLabel}</div>
     </div>
-  `).join('');
+
+    <!-- AKTIEN-EINGABE -->
+    <div style="padding:20px;border-bottom:1px solid var(--border);background:var(--surface2);">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="font-size:13px;font-weight:700;">Mein Bestand</div>
+        <div style="display:flex;align-items:center;gap:0;background:var(--surface);border:2px solid var(--accent);border-radius:12px;overflow:hidden;">
+          <button onclick="document.getElementById('calShares').value=Math.max(1,parseInt(document.getElementById('calShares').value||50)-1);onSharesChange()"
+            style="width:40px;height:44px;background:none;border:none;color:var(--accent);font-size:20px;cursor:pointer;font-weight:700;transition:background 0.1s;"
+            onmouseover="this.style.background='rgba(232,200,74,0.1)'" onmouseout="this.style.background='none'">−</button>
+          <input id="calShares" type="number" value="${SHARES}" min="1" max="100000"
+            style="width:80px;background:none;border:none;color:var(--accent);font-family:var(--font-mono);font-size:20px;font-weight:800;outline:none;text-align:center;padding:0;"
+            onchange="onSharesChange()" oninput="onSharesChange()">
+          <button onclick="document.getElementById('calShares').value=parseInt(document.getElementById('calShares').value||50)+1;onSharesChange()"
+            style="width:40px;height:44px;background:none;border:none;color:var(--accent);font-size:20px;cursor:pointer;font-weight:700;transition:background 0.1s;"
+            onmouseover="this.style.background='rgba(232,200,74,0.1)'" onmouseout="this.style.background='none'">+</button>
+        </div>
+        <div style="font-size:13px;color:var(--muted);font-family:var(--font-mono);">Stück DFN.TO</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);background:rgba(74,232,168,0.08);border:1px solid rgba(74,232,168,0.2);border-radius:6px;padding:4px 10px;">✓ wird lokal gespeichert</div>
+      </div>
+    </div>
+
+    <!-- ZUSAMMENFASSUNG -->
+    <div style="padding:20px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;">
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Brutto / Monat</div>
+        <div style="font-size:18px;font-weight:800;">${fmtEur(bruttoEUR)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">${fmtCad(bruttoCAD)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid rgba(74,232,168,0.3);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Netto / Monat</div>
+        <div style="font-size:18px;font-weight:800;color:var(--green);">${fmtEur(cadToEur(tax.netto))}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">${fmtCad(tax.netto)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Brutto gesamt ✓</div>
+        <div style="font-size:18px;font-weight:800;">${fmtEur(totalBruttoEUR)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">${fmtCad(totalBruttoCAD)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid rgba(255,77,109,0.3);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Steuern gesamt</div>
+        <div style="font-size:18px;font-weight:800;color:var(--red);">−${fmtEur(totalSteuerEUR)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">−${fmtCad(totalSteuerCAD)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid rgba(74,232,168,0.3);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Netto gesamt ✓</div>
+        <div style="font-size:18px;font-weight:800;color:var(--green);">${fmtEur(totalNettoEUR)}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">${fmtCad(totalNettoCAD)}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:10px;padding:14px;border:1px solid var(--border);">
+        <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Pro Jahr (geschätzt)</div>
+        <div style="font-size:18px;font-weight:800;color:var(--accent);">${fmtEur(cadToEur(tax.netto * 12))}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px;">netto · ${fmtCad(tax.netto * 12)}</div>
+      </div>
+    </div>
+
+    <!-- MONATSKARTEN -->
+    <div style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;">
+      ${allMonths.map(m => {
+        const t = calcTax(bruttoCAD);
+        const nettoEUR = cadToEur(t.netto);
+        const label = m.status === 'paid' ? '✓ Bezahlt' : m.status === 'upcoming' ? '⏳ Bevorstehend' : '~ Geschätzt';
+        const borderColor = m.status === 'upcoming'
+          ? 'border-color:var(--yellow);'
+          : m.status === 'paid'
+          ? 'border-color:rgba(74,232,168,0.25);'
+          : '';
+        return `
+          <div class="cal-item" style="${borderColor}">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div style="font-size:14px;font-weight:800;">${m.m}</div>
+              <div class="cal-status ${m.status}" style="font-size:10px;">${label}</div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-bottom:10px;">${m.date}</div>
+            <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;font-family:var(--font-mono);">
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--muted);">Brutto</span>
+                <span style="font-weight:700;">${fmtEur(cadToEur(bruttoCAD))}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--muted);">Quellenst.</span>
+                <span style="color:var(--red);">−${fmtEur(cadToEur(t.quellensteuer))}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--muted);">AbgSt</span>
+                <span style="color:var(--red);">−${fmtEur(cadToEur(t.abgst))}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--muted);">KiSt</span>
+                <span style="color:var(--red);">−${fmtEur(cadToEur(t.kirchensteuer))}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--muted);">Soli</span>
+                <span style="color:var(--red);">−${fmtEur(cadToEur(t.soli))}</span>
+              </div>
+              <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;">
+                <span style="color:var(--green);font-weight:700;">Netto</span>
+                <span style="color:var(--green);font-weight:700;">${fmtEur(nettoEUR)}</span>
+              </div>
+              <div style="text-align:right;font-size:10px;color:var(--muted);margin-top:1px;">${fmtCad(t.netto)}</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 // =============================================
